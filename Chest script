@@ -1,25 +1,148 @@
+-- โหลด Fluent และโมดูลที่เกี่ยวข้อง
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+-- สร้างหน้าต่าง UI
+local Window = Fluent:CreateWindow({
+    Title = "Stamp Hub " .. Fluent.Version,
+    SubTitle = "by Stamp",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- สร้างแท็บ
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
 -- อ้างอิงตัวละครของผู้เล่น
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- ฟังก์ชันย้ายผู้เล่นไปยัง Chest
-local function moveToChest()
-    print("ฟังก์ชัน moveToChest ถูกเรียกใช้งาน!") -- Debug เพื่อตรวจสอบว่าฟังก์ชันถูกเรียกใช้
+-- ฟังก์ชันย้ายผู้เล่นไปยัง Chest ด้วยความเร็วที่ตั้งค่าได้
+local moveSpeed = 10 -- ค่าความเร็วเริ่มต้น
+local function moveToChests()
+    print("ฟังก์ชัน moveToChests ถูกเรียกใช้งาน!")
 
+    -- เก็บกล่องทั้งหมดใน Workspace
+    local chests = {}
     for i, v in pairs(game.Workspace:GetChildren()) do
-        -- ตรวจสอบว่าคือ Chest1, Chest2 หรือ Chest3
-        if v.Name == "Chest1" or v.Name == "Chest2" or v.Name == "Chest3" then 
-            print("สำเร็จ, พบ " .. v.Name .. "!")
-            
-            -- ย้ายผู้เล่นไปยังตำแหน่งของ Chest
-            humanoidRootPart.CFrame = v.CFrame
-            
-            wait(0.1)
-            print("ผู้เล่นถูกย้ายไปยัง " .. v.Name)
+        if v.Name == "Chest1" or v.Name == "Chest2" or v.Name == "Chest3" then
+            table.insert(chests, v) -- เพิ่มกล่องลงในตาราง chests
         end
+    end
+
+    -- ตรวจสอบว่ามีกล่องให้เก็บหรือไม่
+    if #chests == 0 then
+        print("ไม่มีกล่องให้เก็บ!")
+        return
+    end
+
+    -- วนลูปเก็บกล่องจนกว่าจะหมด
+    for _, chest in ipairs(chests) do
+        print("สำเร็จ, พบ " .. chest.Name .. "!")
+
+        -- ย้ายผู้เล่นไปยังตำแหน่งของ Chest ด้วยความเร็วที่ตั้งค่า
+        humanoidRootPart.CFrame = chest.CFrame
+        wait(0.1 / moveSpeed) -- ปรับเวลาการรอตามความเร็ว
+        print("ผู้เล่นถูกย้ายไปยัง " .. chest.Name)
+
+        -- เพิ่มการรอหรือลงมือเก็บที่นี่ถ้าจำเป็น
+        wait(0.1 / moveSpeed)
     end
 end
 
--- เรียกใช้ฟังก์ชันเพื่อย้ายผู้เล่นไปยัง Chest โดยอัตโนมัติ (อาจเรียกใช้งานจาก RemoteEvent หรือบางสถานการณ์อื่น)
-moveToChest()
+-- เพิ่มปุ่มในแท็บ Main เพื่อย้ายไปยัง Chest
+Tabs.Main:AddButton({
+    Title = "Move to Chests",  -- ชื่อของปุ่ม
+    Callback = function()
+        print("ปุ่มถูกกดแล้ว!")
+        moveToChests()  -- เรียกใช้ฟังก์ชันย้ายผู้เล่นไปยัง Chests เมื่อปุ่มถูกกด
+    end
+})
+
+-- Settings Tab Content
+do
+    Tabs.Settings:AddParagraph({
+        Title = "Settings",
+        Content = "Adjust your preferences below."
+    })
+
+    -- Theme Toggle
+    local ThemeToggle = Tabs.Settings:AddToggle("ThemeToggle", {
+        Title = "Dark Mode",
+        Default = true,
+    })
+
+    ThemeToggle:OnChanged(function()
+        if ThemeToggle.Value then
+            Window.Theme = "Dark"
+            print("Theme changed to Dark")
+        else
+            Window.Theme = "Light"
+            print("Theme changed to Light")
+        end
+    end)
+
+    -- Keybind Settings
+    local Keybind = Tabs.Settings:AddKeybind("Keybind", {
+        Title = "KeyBind",
+        Mode = "Toggle",
+        Default = "LeftControl",
+        Callback = function(Value)
+            print("Keybind clicked!", Value)
+        end,
+        ChangedCallback = function(New)
+            print("Keybind changed!", New)
+        end
+    })
+
+    Keybind:OnClick(function()
+        print("Keybind clicked:", Keybind:GetState())
+    end)
+
+    -- Save and Load Settings
+    Tabs.Settings:AddButton({
+        Title = "Save Settings",
+        Callback = function()
+            SaveManager:SaveConfig()
+            print("Settings saved!")
+        end
+    })
+
+    Tabs.Settings:AddButton({
+        Title = "Load Settings",
+        Callback = function()
+            SaveManager:LoadConfig()
+            print("Settings loaded!")
+        end
+    })
+end
+
+-- Hand the library over to our managers
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "Fluent",
+    Content = "The script has been loaded.",
+    Duration = 8
+})
+
+SaveManager:LoadAutoloadConfig()
