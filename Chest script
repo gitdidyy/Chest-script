@@ -1,0 +1,25 @@
+-- อ้างอิงตัวละครของผู้เล่น
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ฟังก์ชันย้ายผู้เล่นไปยัง Chest
+local function moveToChest()
+    print("ฟังก์ชัน moveToChest ถูกเรียกใช้งาน!") -- Debug เพื่อตรวจสอบว่าฟังก์ชันถูกเรียกใช้
+
+    for i, v in pairs(game.Workspace:GetChildren()) do
+        -- ตรวจสอบว่าคือ Chest1, Chest2 หรือ Chest3
+        if v.Name == "Chest1" or v.Name == "Chest2" or v.Name == "Chest3" then 
+            print("สำเร็จ, พบ " .. v.Name .. "!")
+            
+            -- ย้ายผู้เล่นไปยังตำแหน่งของ Chest
+            humanoidRootPart.CFrame = v.CFrame
+            
+            wait(0.1)
+            print("ผู้เล่นถูกย้ายไปยัง " .. v.Name)
+        end
+    end
+end
+
+-- เรียกใช้ฟังก์ชันเพื่อย้ายผู้เล่นไปยัง Chest โดยอัตโนมัติ (อาจเรียกใช้งานจาก RemoteEvent หรือบางสถานการณ์อื่น)
+moveToChest()
